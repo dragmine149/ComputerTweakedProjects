@@ -1,0 +1,7 @@
+# This is local directory stuff aka just cache
+.copier_config
+
+# These are stuff provided by other repos, mainly used for LSP / reverse-engerneering.
+# Might decided to sub-module these in the future though
+Basalt2/
+lua-ls-cc-tweaked/
