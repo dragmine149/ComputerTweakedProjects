@@ -66,5 +66,6 @@ if not multiline then
 end
 
 shell.run("rm", "/tmp/input.txt")
+shell.run("rm", "/tmp")
 
 os.queueEvent("terminal_input", data)
