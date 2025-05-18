@@ -55,11 +55,15 @@ audio.__index = audio
 
 function audio:AUKit()
     local iterator, length = aukit.stream.dfpwm(self.buffer)
-    aukit.play(
+    -- local visualizerIter = aukit.stream.dfpwm(self.buffer)
+    -- for chunk, pos in visualizerIter do log.info(chunk, pos) end
+
+    os.queueEvent("speaker_visualizer", iterator)
+    audio.player = aukit.play(
         iterator,
         function(pos)
             self.progress = pos / length
-            os.queueEvent("speaker_progress", self.progress)
+            os.queueEvent("speaker_progress", self.progress * 100, pos)
         end,
         settings.get("volume", 1),
         peripheral.find("speaker")
@@ -99,16 +103,6 @@ function audio:playState(state)
     end
 end
 
-function audio:seek(progress)
-    log.info("Seeking to: " .. tostring(progress))
-    local percent = 0.01 * #self.buffer
-    local change = percent * progress
-    log.info("Change: " .. tostring(change))
-    log.info("Buffer offset before: " .. tostring(self.bufferOffset))
-    self.bufferOffset = math.floor(self.bufferOffset + change)
-    log.info("Buffer offset after: " .. tostring(self.bufferOffset))
-end
-
 function audio:events()
     while true do
         local event, data = os.pullEventRaw()
@@ -127,8 +121,8 @@ function audio:events()
                 self:playState(state)
             end)
             :case("speaker_seek", function(progress)
-                log.info("Seeking to: " .. tostring(progress))
-                self:seek(progress)
+                log.info("Seeking: " .. tostring(progress))
+                audio.player.seek(audio.player.livePosition() + progress)
             end)
             :case("peripheral", function()
                 log.info("Peripheral detected")

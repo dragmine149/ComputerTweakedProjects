@@ -1,5 +1,5 @@
 local basalt = require("basalt")
-local audio = require("audio")
+-- local audio = require("audio")
 
 local ui_modules = {
     welcome = require("ui.welcome")(),

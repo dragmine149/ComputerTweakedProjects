@@ -1,4 +1,4 @@
-local switch = require("switch")
+local switch = require("/Boombox.utils.switch")
 local queue = {
     queue = {},
     shuffled_queue = {},
