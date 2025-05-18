@@ -100,7 +100,9 @@ function ui.init()
             ui_modules.queue:enqueue(file)
         end,
         download = function()
-        ui.switchScreen(101)
+            ui.current_tab.name = "Downloader"
+            ui.current_tab.id = 101
+            ui.switchScreen(101)
             ui_modules.downloader:download()
         end
     })
@@ -112,12 +114,17 @@ function ui.init()
             shuffleStatus = function()
                 return ui_modules.queue:shuffleStatus()
             end,
+            next = function()
+                return ui_modules.queue:next()
+            end,
+            previous = function()
+                return ui_modules.queue:previous()
+            end
         }
     })
     ui_modules.queue(ui.create_Screen(4), basalt.LOGGER)
     ui_modules.downloader(ui.create_Screen(101), basalt.LOGGER)
 
-    -- ui:Status()
     ui.screens.tabs = {
         welcome = ui.new_tab("welcome", nil, 1),
         files = ui.new_tab("files", "welcome", 2),
@@ -125,10 +132,10 @@ function ui.init()
         queue = ui.new_tab("queue", "playing", 4, function() ui_modules.queue:update() end),
         settings = ui.new_tab("settings", "queue", 5)
     }
-    -- ui:Playing()
+    ui.screens.tabs.welcome:setColor(colors.white, colors.gray)
 
-    -- ui_change_tab("files", 2)
-    ui_change_tab("playing", 3)
+    ui_change_tab("files", 2)
+    -- ui_change_tab("playing", 3)
     -- ui_change_tab("queue", 4)
 end
 
