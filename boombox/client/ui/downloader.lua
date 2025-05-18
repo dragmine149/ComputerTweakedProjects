@@ -1,3 +1,4 @@
+local pretty = require("cc.pretty")
 local shellAdditions = require("/Boombox.utils.shell")
 local downloader = {}
 downloader.__index = downloader
@@ -6,6 +7,8 @@ function downloader.__call(self, screen, log, functions)
     downloader.log = log
     downloader.screen = screen
     screen:setVisible(false)
+
+    self.tab = multishell.getFocus()
 
     downloader.title = screen:addLabel("ui_downloader_title")
         :setAutoSize(false)
@@ -17,17 +20,22 @@ function downloader.__call(self, screen, log, functions)
         :setText([[Click the button below and then follow the instructions on the computer.
 Please don't worry. The music will continue playing even with the computer awaiting input.]])
         :setSize(57, 3)
-        :setPosition(1, "{ui_downloader_title.height + 1}")
+        :setPosition(1, "{ui_downloader_title.y + 1}")
 
     downloader.input = screen:addButton("ui_downloader_input")
         :setSize("{parent.width}", 1)
-        :setPosition(0, downloader.description.height + downloader.title.height)
+        :setPosition(0, "{ui_downloader_description.y + ui_downloader_description.height + 1}")
         :setText("Enter URL")
         :setColor("{self.clicked and colors.white or colors.black}", "{self.clicked and colors.gray or colors.lightGray}")
         :onClick(function()
             local defaultText = "\nhttps://example.com/file.dfpwm"
             if downloader.input:getText() ~= "Enter URL" and downloader.input:getText() ~= defaultText then
                 defaultText = downloader.input:getText()
+            end
+
+            if multishell.getTitle(self.tab) == 'edit' then
+                -- we are already editing something. No need to edit TWO things
+                return
             end
 
             self.tab = multishell.launch(shellAdditions.createShellEnv("rom/programs"), "rom/programs/shell.lua", "Boombox/terminal/keyboard.lua",
