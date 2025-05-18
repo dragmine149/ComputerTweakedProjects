@@ -52,5 +52,5 @@ while true do
 
     findAndDrop()
     print("Sleeping")
-    os.sleep(10) -- don't need it to check THAT often.
+    os.sleep(60) -- don't need it to check THAT often.
 end

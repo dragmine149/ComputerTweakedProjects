@@ -7,8 +7,10 @@ Do not expect these to be updated. as i'll probably only update them if i need t
 A mini project to automatically farm amethyst. Simple to setup.
 Download via the following command:
 ```sh
-wget 
+wget https://raw.githubusercontent.com/dragmine149/ComputerTweakedProjects/refs/heads/main/AmethystFarm/amethyst.lua
+wget https://raw.githubusercontent.com/dragmine149/ComputerTweakedProjects/refs/heads/main/AmethystFarm/startup.lua
 ```
+One turtle can deal with up to 5 buddings at once as one side has to be for some storage.
 
 ## Create:Astral -> Farming
 This is a canceled project for the create astral modpack. Meant to be a series of robots just farming away.
