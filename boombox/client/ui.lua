@@ -100,10 +100,8 @@ function ui.init()
             ui_modules.queue:enqueue(file)
         end,
         download = function()
-            ui.current_tab.name = "Downloader"
-            ui.current_tab.id = 101
-            ui.switchScreen(101)
             ui_modules.downloader:download()
+            ui_change_tab("downloader", 6)
         end
     })
     ui_modules.playing(ui.create_Screen(3), basalt.LOGGER, {
@@ -123,11 +121,14 @@ function ui.init()
         }
     })
     ui_modules.queue(ui.create_Screen(4), basalt.LOGGER)
-    ui_modules.downloader(ui.create_Screen(101), basalt.LOGGER, {
+    ui_modules.downloader(ui.create_Screen(6), basalt.LOGGER, {
         folders = {
             refresh_dropdown = function(dropdown, exclude_dfpwm, populate)
                 return ui_modules.folders.refresh_dropdown(dropdown, exclude_dfpwm, populate)
             end
+        },
+        tabs = {
+            files = function() ui_change_tab("files", 2) end
         }
     })
 
@@ -136,7 +137,8 @@ function ui.init()
         files = ui.new_tab("files", "welcome", 2),
         playing = ui.new_tab("playing", "files", 3),
         queue = ui.new_tab("queue", "playing", 4, function() ui_modules.queue:update() end),
-        settings = ui.new_tab("settings", "queue", 5)
+        settings = ui.new_tab("settings", "queue", 5),
+        downloader = ui.new_tab("downloader", "settings", 6)
     }
     ui.screens.tabs.welcome:setColor(colors.white, colors.gray)
 

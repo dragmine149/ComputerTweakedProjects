@@ -59,7 +59,9 @@ Please don't worry. The music will continue playing even with the computer await
         if event == "terminal_input" then
             downloader.input:setText(data)
             os.queueEvent("boombox_request", "file", data)
-            os.queueEvent("boombox_request", "info")
+            if data ~= "" then
+                os.queueEvent("boombox_request", "info")
+            end
             self.tab = 1 -- switch back to our tab.
             shell.switchTab(self.tab)
         end
@@ -78,6 +80,17 @@ Please don't worry. The music will continue playing even with the computer await
         :setSize("{parent.width}", 1)
         :setPosition(1, "{ui_downloader_info.y + ui_downloader_info.height + 1}")
         :setColor("{colors.gray}", "{colors.black}")
+        :onClick(function ()
+            os.queueEvent("boombox_request", "download")
+        end)
+        :listenEvent("boombox_download_complete")
+
+    function downloader.button:handleEvent(event, data)
+        if event == "boombox_download_complete" then
+            functions.tabs.files()
+            os.queueEvent("terminal_input", "")
+        end
+    end
 
     downloader.retry = screen:addCheckbox("ui_downloader_retry")
         :setText("Auto retry?: [ ] (0/1)")
@@ -104,12 +117,22 @@ Please don't worry. The music will continue playing even with the computer await
         end
     end
 
+    downloader.store_label = screen:addLabel("ui_downloader_store")
+        :setText("Store to: ")
+        :setPosition(1, "{ui_downloader_retry.y + ui_downloader_retry.height + 1}")
+        :setAutoSize(false)
+
     downloader.folder = screen:addDropdown("ui_downloader_dropdown")
         :setDropdownHeight(10)
-        :setPosition(1, "{ui_downloader_retry.y + ui_downloader_retry.height + 1}")
-        :setSize("{parent.width}", 1)
+        :setPosition("{ui_downloader_store.width + 1}", "{ui_downloader_store.y}")
+        :setSize("{parent.width - ui_downloader_store.width}", 1)
+        :onSelect(function (dropSelf, index, item)
+            os.queueEvent("boombox_request", "storage", item)
+        end)
 
-    functions.folders.refresh_dropdown(downloader.folder, true)
+    functions.folders.refresh_dropdown(downloader.folder, true, function (item)
+        os.queueEvent("boombox_request", "storage", {item = item})
+    end)
 
     downloader.network = multishell.launch(shellAdditions.createShellEnv("rom/programs"), "rom/programs/shell.lua", "Boombox/network/file.lua")
     multishell.setTitle(downloader.network, "Boombox Downloader")

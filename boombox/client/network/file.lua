@@ -1,4 +1,3 @@
-local args = {...}
 local switch = require("/Boombox.utils.switch")
 local log = require("/Boombox.utils.log")
 
@@ -22,18 +21,21 @@ local function request(url, headers, binary)
     file.retry = 2
     if file.retryEnabled then file.retry = 0 end
 
-    log.info(response)
+    -- log.info(response)
     log.info("retry: " .. tostring(file.retry))
     while not response and file.retry < 3 do
         log.debug("Requesting: " .. url)
-        log.info(response)
+        -- log.info(response)
         log.info("retry: " .. tostring(file.retry) .. ", enabled: " .. tostring(file.retryEnabled))
 
         response, message, failed = http.get(url, headers, binary)
+        log.info("Http fetched! " .. tostring(response ~= nil))
         if response then
             local data = response.readAll()
             response.close()
-            log.info('Received: '.. tostring(data))
+            os.sleep(2)
+            log.info("Returning data")
+            -- log.info('Received: '.. tostring(data))
             return data
         end
 
@@ -49,6 +51,7 @@ local function request(url, headers, binary)
 
         file.retry = file.retry + 1
         os.queueEvent("boombox_retry", file.retry)
+        os.sleep(2) -- take a short 2 second nap.
     end
     log.info("Completed while loop.")
 
@@ -57,6 +60,7 @@ end
 
 function file.new()
     file.__path = ""
+    file.storage = ""
     file.__data = {}
     file.__info = {}
     file.retry = 0
@@ -99,18 +103,37 @@ function file:getInfo()
 end
 
 function file:download()
+    log.info(tostring(file.storage))
+    log.info(tostring(file.__info.title))
+
     local path = self.__path
     if self.__yt then
         path = "https://boombox-server.dragmine149.workers.dev/?video=" .. self.__path
     end
 
+    log.info("Attempting to download: " .. path)
     local data = request(path, {}, true)
+    log.info("Received some data...")
     if not data then
+        log.info("Failed to download")
         os.queueEvent("boombox_download_error", path)
         return
     end
-    file.__data = data
-    os.queueEvent("boombox_download_complete", file.__data)
+
+
+    log.info("Downloaded, now storing... (" .. file.storage .. "/" .. file.__info.title .. ".dfpwm)")
+    local handler, error = fs.open(file.storage .. "/" .. file.__info.title .. ".dfpwm", "wb")
+    if not handler then
+        log.info("Failed to open file: " .. tostring(error))
+        os.queueEvent("boombox_download_error", error)
+        return
+    end
+    log.info("Writing to file...")
+    handler.write(data)
+    handler.flush()
+    handler.close()
+
+    os.queueEvent("boombox_download_complete")
 end
 
 function file:listen()
@@ -128,6 +151,10 @@ function file:listen()
         end)
         :case("download", function()
             self:download()
+        end)
+        :case("storage", function(data)
+            -- log.info(data[2].item)
+            self.storage = data[2].item
         end)
         :case("terminate", function()
             log.warn("Preventing termination")
