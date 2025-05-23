@@ -104,6 +104,13 @@ Please don't worry. The music will continue playing even with the computer await
         end
     end
 
+    downloader.folder = screen:addDropdown("ui_downloader_dropdown")
+        :setDropdownHeight(10)
+        :setPosition(1, "{ui_downloader_retry.y + ui_downloader_retry.height + 1}")
+        :setSize("{parent.width}", 1)
+
+    functions.folders.refresh_dropdown(downloader.folder, true)
+
     downloader.network = multishell.launch(shellAdditions.createShellEnv("rom/programs"), "rom/programs/shell.lua", "Boombox/network/file.lua")
     multishell.setTitle(downloader.network, "Boombox Downloader")
 end

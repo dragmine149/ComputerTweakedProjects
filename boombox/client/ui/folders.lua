@@ -1,3 +1,5 @@
+local expect = require("cc.expect")
+local pretty = require("cc.pretty")
 local folders = {
     selected_item = false
 }
@@ -15,12 +17,12 @@ folders.__call = function(self, screen, log, functions)
         :setText("refresh")
         :setColor("{self.clicked and colors.white or colors.black}", "{self.clicked and colors.gray or colors.lightGray}")
         :setSize(9, 1)
-        :onClick(function() folders:refresh() end)
+        :onClick(function() folders.refresh_dropdown(folders.dropdown, false, function (item) folders:populate(item) end) end)
 
     folders.dropdown = screen:addDropdown("ui_folders_dropdown")
         :setPosition("{ui_folders_refresh.x - self.width}", 1)
         :setZ(10)
-        :setSize(15, 1)
+        :setSize(25, 1)
         :onSelect(function(dropSelf, index, item)
             log.info("Selected: " .. tonumber(index) .. " : " .. tostring(item))
             self:populate(item.item)
@@ -123,7 +125,7 @@ folders.__call = function(self, screen, log, functions)
     --     -- :setSize(7, 1)
     --     :setBackground(colors.black)
 
-    self:refresh()
+    folders.refresh_dropdown(folders.dropdown, false, function (item) folders:populate(item) end)
 end
 
 ---Returns information about the drives on the network.
@@ -151,19 +153,60 @@ local function getMounts()
     return mounts
 end
 
----Update the dropdown ui to include new changes to the file system if any has happened. (This includes new drives being added and removed from the network)
-function folders:refresh()
-    local previousSelected = folders.dropdown:getSelectedItem()
+function folders.space(path)
+    local space = {
+        filled = 0,
+        free = 0,
+        total =  0
+    }
 
-    folders.__mounts = getMounts()
-    folders.dropdown:clear()
+    space.free = fs.getFreeSpace(path)
+    space.total = fs.getCapacity(path)
+
+    if space.free == "unlimited" then space.free = -1 end
+    if space.total == nil then space.total = -1 end
+    if space.free > 0 and space.total > 0 then space.filled = space.total - space.free else space.filled = -1 end
+
+    space.filled = tonumber(space.filled)
+    space.free = tonumber(space.free)
+    space.total = tonumber(space.total)
+
+    local function formatBytes(bytes)
+        if bytes == 0 then
+            return "0 Bytes"
+        end
+
+        local k = 1024
+        local sizes = {"Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+
+        local i = math.floor(math.log(bytes, k))
+
+        -- Use string.format to round to one decimal place if it's not an exact multiple
+        return string.format("%.1f %s", bytes / (k ^ i), sizes[i + 1])
+    end
+
+    space.filled_text = formatBytes(space.filled)
+    space.free_text = formatBytes(space.free)
+    space.total_text = formatBytes(space.total)
+
+    return space
+end
+
+---Update the dropdown ui to include new changes to the file system if any has happened. (This includes new drives being added and removed from the network)
+function folders.refresh_dropdown(dropdown, include_all, populate)
+    expect.expect(2, include_all, "boolean")
+
+    local previousSelected = dropdown:getSelectedItem()
+
+    local mounts = getMounts()
+    dropdown:clear()
 
     ---Returns the state of the provided file.
     ---@param folder string
     ---@param file string
     ---@return integer result (0 = file, 1 = audio, 2 = dir)
     local function check_for_audio(folder, file)
-        if file:match("[^/]*.dfpwm$") then return 1 end -- ignore files which are not .dfpwm files ("what is this file?")
+        if file:match("[^/]*.dfpwm$") and not include_all then return 1 end -- ignore files which are not .dfpwm files ("what is this file?")
         if not fs.isDir(fs.combine(folder, file)) then return 0 end -- ignore files which are not directories
         return 2
     end
@@ -173,11 +216,11 @@ function folders:refresh()
     local function process_item(item)
         if not fs.isDir(item) then return end -- files are useless here.
         if item == 'rom' then return end -- this is read only stuff
-        if item == 'boombox' then return end -- hey. don't touch our stuff.
+        if item == 'Boombox' then return end -- hey. don't touch our stuff.
 
         local files = fs.list(item)
-        local hasAudio = false
-        while #files > 0 and not hasAudio do
+        local hasAudio = false or include_all
+        while #files > 0 and not hasAudio and not include_all do
             -- folders.log.info(textutils.serialise(files))
 
             local subfile = files[1]
@@ -195,27 +238,33 @@ function folders:refresh()
         if not hasAudio then return end -- No audio files, so not worth it to show it.
 
         local text = item
-        local mounted = folders.__mounts[item]
+        local mounted = mounts[item]
         if mounted then
             folders.log.info("Mounted drive: " .. tostring(mounted.label) .. " at " .. item)
             text = mounted.label .. ' (' .. item .. ')' -- by default, include both label and folder
             if mounted.label == item then text = item end -- but remove the label (and just show the folder) if they turn out to be the same.
         end
 
-        local selected = #folders.dropdown.get("items") == 0
+        local space = folders.space(item)
+        if space.free < 1e6 then return end
+        text = text .. " (" .. space.filled_text .. '/' .. space.free_text .. ")"
+
+        local selected = #dropdown.get("items") == 0
         if previousSelected then
             folders.log.debug("previousSelected.item: '" .. tostring(previousSelected.item) .. "' Using that instead.")
             selected = previousSelected.item == item
         end
 
-        folders.dropdown:addItem({ text = text, item = item, selected = selected })
-        if selected then
-            folders:populate(item)
+        folders.log.info("Added data: " .. pretty.pretty({ text = text, item = item, selected = selected }))
+        dropdown:addItem({ text = text, item = item, selected = selected })
+        if selected and populate ~= nil then
+            populate(item)
         end
     end
 
     local root = fs.list('.')
     for _, item in ipairs(root) do
+        folders.log.info("Processing " .. item)
         process_item(item)
     end
 end

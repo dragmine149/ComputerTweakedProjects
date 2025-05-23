@@ -123,7 +123,13 @@ function ui.init()
         }
     })
     ui_modules.queue(ui.create_Screen(4), basalt.LOGGER)
-    ui_modules.downloader(ui.create_Screen(101), basalt.LOGGER)
+    ui_modules.downloader(ui.create_Screen(101), basalt.LOGGER, {
+        folders = {
+            refresh_dropdown = function(dropdown, exclude_dfpwm, populate)
+                return ui_modules.folders.refresh_dropdown(dropdown, exclude_dfpwm, populate)
+            end
+        }
+    })
 
     ui.screens.tabs = {
         welcome = ui.new_tab("welcome", nil, 1),
