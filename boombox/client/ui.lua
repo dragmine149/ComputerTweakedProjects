@@ -47,6 +47,8 @@ function ui.new_tab(tab_name, previous_name, tab_id, callback)
         :setY(2)
         :onClick(function(self)
             ui_change_tab(self.name, tab_id)
+            if self.name ~= "downloader" then ui_modules.downloader.leave() end
+            if self.name ~= "options" then ui_modules.options.leave() end
             if callback then callback(self) end
         end)
 
@@ -106,18 +108,10 @@ function ui.init()
     })
     ui_modules.playing(ui.create_Screen(3), basalt.LOGGER, {
         queue = {
-            toggleShuffle = function()
-                return ui_modules.queue:toggleShuffle()
-            end,
-            shuffleStatus = function()
-                return ui_modules.queue:shuffleStatus()
-            end,
-            next = function()
-                return ui_modules.queue:next()
-            end,
-            previous = function()
-                return ui_modules.queue:previous()
-            end
+            toggleShuffle = function() return ui_modules.queue:toggleShuffle() end,
+            shuffleStatus = function() return ui_modules.queue:shuffleStatus() end,
+            next = function() return ui_modules.queue:next() end,
+            previous = function() return ui_modules.queue:previous() end
         }
     })
     ui_modules.queue(ui.create_Screen(4), basalt.LOGGER)
@@ -131,7 +125,7 @@ function ui.init()
             end
         },
         tabs = {
-            files = function() ui_change_tab("files", 2) end
+            files = function() ui_change_tab("files", 2) ui_modules.folders.refresh_ui() end
         }
     })
 
@@ -142,6 +136,7 @@ function ui.init()
         queue = ui.new_tab("queue", "playing", 4, function() ui_modules.queue:update() end),
         settings = ui.new_tab("settings", "queue", 5),
         downloader = ui.new_tab("downloader", "settings", 6)
+        downloader = ui.new_tab("downloader", "settings", 6, function() ui_modules.downloader:download() end),
     }
     ui.screens.tabs.welcome:setColor(colors.white, colors.gray)
 

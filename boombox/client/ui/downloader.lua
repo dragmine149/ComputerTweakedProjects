@@ -6,7 +6,7 @@ downloader.__index = downloader
 function downloader.__call(self, screen, log, functions)
     downloader.log = log
     downloader.screen = screen
-    screen:setVisible(false)
+    -- screen:setVisible(false)
 
     self.tab = multishell.getFocus()
 
@@ -28,11 +28,6 @@ Please don't worry. The music will continue playing even with the computer await
         :setText("Enter URL")
         :setColor("{self.clicked and colors.white or colors.black}", "{self.clicked and colors.gray or colors.lightGray}")
         :onClick(function()
-            local defaultText = "\nhttps://example.com/file.dfpwm"
-            if downloader.input:getText() ~= "Enter URL" and downloader.input:getText() ~= defaultText then
-                defaultText = downloader.input:getText()
-            end
-
             if multishell.getTitle(self.tab) == 'edit' then
                 -- we are already editing something. No need to edit TWO things
                 return
@@ -44,7 +39,7 @@ Please don't worry. The music will continue playing even with the computer await
             downloader.log.info("Launching downloader editor. Tab id: " .. self.tab)
             shell.switchTab(self.tab)
         end)
-        :listenEvent("terminal_input", true)
+        -- :listenEvent("terminal_input", true)
         :listenEvent("boombox_download_error", true)
         :listenEvent("boombox_download_info", true)
 
@@ -67,8 +62,12 @@ Please don't worry. The music will continue playing even with the computer await
         end
 
         if event == "boombox_download_error" or event == "boombox_download_info" then
-            downloader.info:setText(data)
+            if data == nil then
+                downloader.info:setText("Error whilst trying to download.")
+                return
+            end
 
+            downloader.info:setText(data)
             if not string.find(data, "youtube:") then
                 downloader.button:setColor("{self.clicked and colors.white or colors.black}", "{self.clicked and colors.gray or colors.lightGray}")
             end
@@ -90,6 +89,7 @@ Please don't worry. The music will continue playing even with the computer await
             functions.folders.change_to(downloader.folder:getSelectedItem().item)
             functions.tabs.files()
             os.queueEvent("terminal_input", "")
+            downloader.input:listenEvent("terminal_input", false)
         end
     end
 
@@ -142,9 +142,12 @@ end
 
 function downloader.download()
     downloader.log.info("Downloading file...")
-    downloader.screen:setVisible(true)
+    downloader.input:listenEvent("terminal_input", true)
 end
 
+function downloader.leave()
+    downloader.input:listenEvent("terminal_input", false)
+end
 
 return function()
 	return setmetatable({}, downloader)

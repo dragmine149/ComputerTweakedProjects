@@ -17,7 +17,7 @@ folders.__call = function(self, screen, log, functions)
         :setText("refresh")
         :setColor("{self.clicked and colors.white or colors.black}", "{self.clicked and colors.gray or colors.lightGray}")
         :setSize(9, 1)
-        :onClick(function() folders.refresh_dropdown(folders.dropdown, false, function (item) folders:populate(item) end) end)
+        :onClick(function() folders.refresh_ui() end)
 
     folders.dropdown = screen:addDropdown("ui_folders_dropdown")
         :setPosition("{ui_folders_refresh.x - self.width}", 1)
@@ -84,6 +84,7 @@ folders.__call = function(self, screen, log, functions)
             :setSize(18, 1)
             :onClick(function()
                 if not folders.selected_item then return end
+                if not fs.exists(folders.list:getSelectedItem().item) then return end
                 folders.log.info("Add to Queue button clicked")
                 functions.enqueue(folders.list:getSelectedItem().item)
                 -- local selected = ui.playlist:getSelectedItem()
@@ -153,6 +154,20 @@ local function getMounts()
     return mounts
 end
 
+function folders.formatBytes(bytes)
+    if bytes == 0 then
+        return "0 Bytes"
+    end
+
+    local k = 1024
+    local sizes = {"Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
+
+    local i = math.floor(math.log(bytes, k))
+
+    -- Use string.format to round to one decimal place if it's not an exact multiple
+    return string.format("%.1f %s", bytes / (k ^ i), sizes[i + 1])
+end
+
 function folders.space(path)
     local space = {
         filled = 0,
@@ -171,23 +186,9 @@ function folders.space(path)
     space.free = tonumber(space.free)
     space.total = tonumber(space.total)
 
-    local function formatBytes(bytes)
-        if bytes == 0 then
-            return "0 Bytes"
-        end
-
-        local k = 1024
-        local sizes = {"Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"}
-
-        local i = math.floor(math.log(bytes, k))
-
-        -- Use string.format to round to one decimal place if it's not an exact multiple
-        return string.format("%.1f %s", bytes / (k ^ i), sizes[i + 1])
-    end
-
-    space.filled_text = formatBytes(space.filled)
-    space.free_text = formatBytes(space.free)
-    space.total_text = formatBytes(space.total)
+    space.filled_text = folders.formatBytes(space.filled)
+    space.free_text = folders.formatBytes(space.free)
+    space.total_text = folders.formatBytes(space.total)
 
     return space
 end
@@ -247,7 +248,7 @@ function folders.refresh_dropdown(dropdown, include_all, populate)
 
         local space = folders.space(item)
         if space.free < 1e6 then return end
-        text = text .. " (" .. space.filled_text .. '/' .. space.free_text .. ")"
+        text = text .. " (" .. space.filled_text .. '/' .. space.total_text .. ")"
 
         local selected = #dropdown.get("items") == 0
         if previousSelected then
