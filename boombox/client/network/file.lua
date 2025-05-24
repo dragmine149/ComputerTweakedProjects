@@ -9,6 +9,7 @@ local file = {}
 ---@param binary any
 ---@return string|nil
 local function request(url, headers, binary)
+    log.info("Checking " .. url)
     local valid, reason = http.checkURL(url)
     if not valid then
         log.error("Invalid url: " .. reason)
@@ -73,24 +74,22 @@ function file:getInfo()
     if self.__yt then
         log.info("retry: " .. tostring(file.retry) .. ", enabled: " .. tostring(file.retryEnabled))
 
-        local response = request("https://ytdlp.online/stream?command=--get-title%20--skip-download%20--xff%20us%20" .. self.__path)
-        log.info(response)
-        if not response then
+        local title = request("https://boombox-server.dragmine149.workers.dev/?video_title=" .. self.__path)
+        log.info(title)
+        if not title then
             log.error("Error in response stream!")
             os.queueEvent("boombox_download_error", self.__path)
             return
         end
-        file.__info.title = response:match("\n.-\n(data: (.+))")local title = nil
-        for line in response:gmatch("[^\r\n]+") do
-            if line:match("^data:") then
-                if title then
-                    title = line:match("^data:%s*(.-)$")
-                    break
-                else
-                    title = true
-                end
-            end
+
+        title = title:gsub("/", "--")
+
+        if title and title:lower():match("^error") then
+            log.error("Title starts with 'error': " .. title)
+            os.queueEvent("boombox_download_error", "Invalid title: " .. title)
+            return
         end
+
         file.__info.title = title
         os.queueEvent("boombox_download_info", file.__info.title)
         return
@@ -120,9 +119,19 @@ function file:download()
         return
     end
 
+    local path = file.storage .. "/" .. file.__info.title
+    log.info("Downloaded, now storing... (" .. path .. ".dfpwm)")
 
-    log.info("Downloaded, now storing... (" .. file.storage .. "/" .. file.__info.title .. ".dfpwm)")
-    local handler, error = fs.open(file.storage .. "/" .. file.__info.title .. ".dfpwm", "wb")
+    local c = 1
+    local tpath = path
+    while fs.exists(tpath .. ".dfpwm") do
+        c = c + 1
+        tpath = path .. tostring(c)
+        log.info("Offset by 1 to: " .. tpath)
+    end
+    path = tpath .. ".dfpwm"
+
+    local handler, error = fs.open(path, "wb")
     if not handler then
         log.info("Failed to open file: " .. tostring(error))
         os.queueEvent("boombox_download_error", error)
