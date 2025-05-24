@@ -87,6 +87,7 @@ Please don't worry. The music will continue playing even with the computer await
 
     function downloader.button:handleEvent(event, data)
         if event == "boombox_download_complete" then
+            functions.folders.change_to(downloader.folder:getSelectedItem().item)
             functions.tabs.files()
             os.queueEvent("terminal_input", "")
         end

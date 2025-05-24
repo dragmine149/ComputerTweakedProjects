@@ -125,6 +125,9 @@ function ui.init()
         folders = {
             refresh_dropdown = function(dropdown, exclude_dfpwm, populate)
                 return ui_modules.folders.refresh_dropdown(dropdown, exclude_dfpwm, populate)
+            end,
+            change_to = function(dir)
+                ui_modules.folders:populate(dir)
             end
         },
         tabs = {
