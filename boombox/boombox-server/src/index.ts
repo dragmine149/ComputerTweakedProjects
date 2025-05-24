@@ -1,8 +1,67 @@
+
+type Translation = {
+	"source-language": string;
+	"source-text": string;
+	"destination-language": string;
+	"destination-text": string;
+	"pronunciation": {
+		"source-text-phonetic"?: string;
+		"source-text-audio"?: string;
+		"destination-text-audio"?: string;
+	};
+	"translations": {
+		"all-translations"?: string[];
+		"possible-translations"?: string[];
+		"possible-mistakes"?: string[];
+	};
+	"definitions": string;
+	"see-also": string;
+};
+
+async function translateTitleText(title: string) {
+	let response = await fetch(`https://ftapi.pythonanywhere.com/translate?dl=en&text=${title}`);
+	if (!response.ok) {
+		console.log(`Failed to translate title. (status: ${response.status} ${response.statusText})`);
+		return "";
+	}
+	let data: Translation = await response.json();
+	return data["destination-text"];
+}
+
+async function translateTitle(title: string) {
+	let response = await fetch(`https://ftapi.pythonanywhere.com/translate?dl=en&text=${title}`);
+	if (!response.ok) {
+		console.log(`Failed to translate title. (status: ${response.status} ${response.statusText})`);
+		return new Response(`Failed to translate title. (status: ${response.status} ${response.statusText})`, { status: response.status });
+	}
+	let data: Translation = await response.json();
+	return new Response(data["destination-text"]);
+}
+
+async function get_title(video: string) {
+	let videoInfo = await fetch(`https://ytdlp.online/stream?command= --get-title --skip-download ${video}`);
+	let titleData = await videoInfo.text()
+	let lines = titleData.split('\n')
+	let title = lines.filter(line => line.startsWith('data'))[1]
+	title = title.replace(': ', '');
+	return title;
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		console.log('Fetching audio data...');
 		let url = new URL(request.url);
 		let video = url.searchParams.get('video');
+		let video_title = url.searchParams.get('title');
+		let vvt = url.searchParams.get('video_title');
+
+		if (vvt) {
+			video_title = await get_title(vvt);
+		}
+
+		if (video_title) {
+			return await translateTitle(video_title);
+		}
 
 		if (!video) {
 			console.log('No video provided');
@@ -69,6 +128,7 @@ export default {
 		let lines = titleData.split('\n')
 		let title = lines.filter(line => line.startsWith('data'))[1]
 		title = title.replace(': ', '');
+		title = await translateTitleText(title);
 		console.log(`Title: ${title}`)
 
 		console.log(`Returning audio file...`);
