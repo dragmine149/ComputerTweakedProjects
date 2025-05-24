@@ -55,10 +55,11 @@ audio.__index = audio
 
 function audio:AUKit()
     local iterator, length = aukit.stream.dfpwm(self.buffer)
-    -- local visualizerIter = aukit.stream.dfpwm(self.buffer)
+    local visualizerIter, len = aukit.stream.dfpwm(self.buffer)
+    -- os.queueEvent("speaker_buffer", visualizerIter)
     -- for chunk, pos in visualizerIter do log.info(chunk, pos) end
 
-    os.queueEvent("speaker_visualizer", iterator)
+    os.queueEvent("speaker_visualizer", visualizerIter)
     audio.player = aukit.play(
         iterator,
         function(pos)
@@ -115,6 +116,13 @@ function audio:events()
                 log.info("Playing now: " .. file)
                 self:playNow(file)
                 self:playState(true)
+            end)
+            :case("speaker_play_empty", function(file)
+                if not self.playing then
+                    log.info("Playing now: " .. file)
+                    self:playNow(file)
+                    self:playState(true)
+                end
             end)
             :case("speaker_play_state", function(state)
                 log.info("Playing state: " .. tostring(state))

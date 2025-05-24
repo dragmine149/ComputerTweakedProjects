@@ -55,11 +55,8 @@ queue.__call = function(self, screen, log)
         :onClick(function (playself)
             if playself:getBackground() == colors.gray then return end
             local item = queue.list:getSelectedItem()
-            for i, v in ipairs(self.queue) do
-                if v == item.item then
-                    return self.queue[i]
-                end
-            end
+            queue.log.info(textutils.serialise(item))
+            os.queueEvent("speaker_play_now", item.item)
         end)
         :setBackground(colors.gray)
 end
@@ -157,6 +154,7 @@ end
 function queue.enqueue(self, item)
     queue.log.info("Added " .. item .. " to queue")
     table.insert(self.queue, item)
+    os.queueEvent("speaker_play_empty", item)
 end
 
 function queue:update()

@@ -1,6 +1,7 @@
 -- Modified version of https://gist.github.com/MichielP1807/9536445bd5773915a58594869049d2ed
 -- from https://pinestore.cc/projects/99/waveflow-visualizer
 
+local log = require("/Boombox.utils.log")
 -- BetterBetterBlittle (takes color spaces into account when picking colors)
 local betterblittle = require("/Boombox.utils.betterbetterblittle")
 local switch = require("/Boombox.utils.switch")
@@ -21,7 +22,7 @@ waveform.gradientI = 1
 local samplerate = 48 -- 48 samples per ms (48kHz)
 
 local buffers = {}
-local MAX_BUFFERS = 3 -- maximum number of buffers to keep in memory
+-- local MAX_BUFFERS = 3 -- maximum number of buffers to keep in memory
 local bufferI = 0
 
 local newestBufferEndTime = 0 -- in ms, aka nextBufferStartTime
@@ -93,11 +94,12 @@ function waveform.gameLoop()
 
             local buffer, sampleIndex = {}, 1
             local sampleOffset = floor((newestBufferEndTime - time) * samplerate)
+            -- log.info(sampleOffset, newestBufferEndTime, time)
             if sampleOffset >= 0 then
                 buffer = buffers[bufferI] or {}
                 sampleIndex = #buffer - sampleOffset
                 if sampleIndex < 0 then
-                    buffer = buffers[(bufferI - 2) % MAX_BUFFERS + 1] or {}
+                    buffer = buffers[(bufferI - 2)] or {}
                     sampleIndex = sampleIndex + #buffer
                 end
             end
@@ -119,7 +121,7 @@ function waveform.gameLoop()
                 if sampleOffset >= 0 then
                     sample = buffer[sampleIndex - scale * (x - 1)]
                     if not sample then
-                        buffer = buffers[bufferI % MAX_BUFFERS + 1] or {}
+                        buffer = buffers[bufferI] or {}
                         sample = buffer[sampleIndex + x] or 0
                     end
                 end
@@ -132,6 +134,7 @@ function waveform.gameLoop()
             end
 
             betterblittle.drawBuffer(frameBuffer, window)
+            bufferI = bufferI + 1
 
             -- window.setTextColor(2)
             -- window.setCursorPos(1, 1)
@@ -147,15 +150,17 @@ function waveform.gameLoop()
 end
 
 function waveform.buffer()
-    print("Waiting...")
+    log.info("Waiting...")
     while true do
         local event, data = os.pullEventRaw()
         local waveSwitch = switch()
-            :case("speaker_progress", function (data)
-
+            :case("speaker_progress", function (edata)
+                newestBufferEndTime = os.epoch("utc") + (edata * 1000)
             end)
-            :case("speaker_visualizer", function(data)
-                buffers = data
+            :case("speaker_visualizer", function(edata)
+                log.info("Received data!")
+                log.info(type(edata))
+                buffers = edata
             end)
             :default(function() end)
 
