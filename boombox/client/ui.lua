@@ -7,7 +7,8 @@ local ui_modules = {
     playing = require("ui.playing")(),
     -- settings = require("ui.settings")(),
     queue = require("ui.queue")(),
-    downloader = require("ui.downloader")()
+    downloader = require("ui.downloader")(),
+    options = require("ui.options")()
 }
 
 local ui = {
@@ -104,6 +105,10 @@ function ui.init()
         download = function()
             ui_modules.downloader:download()
             ui_change_tab("downloader", 6)
+        end,
+        options = function(file)
+            ui_modules.options.view(file)
+            ui_change_tab("options", 10)
         end
     })
     ui_modules.playing(ui.create_Screen(3), basalt.LOGGER, {
@@ -128,6 +133,10 @@ function ui.init()
             files = function() ui_change_tab("files", 2) ui_modules.folders.refresh_ui() end
         }
     })
+    ui_modules.options(ui.create_Screen(10), basalt.LOGGER, {
+        formatBytes = function(bytes) return ui_modules.folders.formatBytes(bytes) end,
+        files = function() ui_change_tab("files", 2) ui_modules.folders.refresh_ui() end
+    })
 
     ui.screens.tabs = {
         welcome = ui.new_tab("welcome", nil, 1),
@@ -135,8 +144,10 @@ function ui.init()
         playing = ui.new_tab("playing", "files", 3),
         queue = ui.new_tab("queue", "playing", 4, function() ui_modules.queue:update() end),
         settings = ui.new_tab("settings", "queue", 5),
-        downloader = ui.new_tab("downloader", "settings", 6)
         downloader = ui.new_tab("downloader", "settings", 6, function() ui_modules.downloader:download() end),
+        options = {
+            setColor = function (colorA, colorB) end
+        }
     }
     ui.screens.tabs.welcome:setColor(colors.white, colors.gray)
 

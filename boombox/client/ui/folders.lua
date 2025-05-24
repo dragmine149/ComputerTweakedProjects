@@ -80,7 +80,7 @@ folders.__call = function(self, screen, log, functions)
         folders.queue = screen:addButton("ui_folders_queue")
             :setText("Add to Queue")
             -- :setPosition("{ui_folders_queue_all.x - self.width - 1}", "{parent.height - 2}")
-            :setPosition("{parent.width - self.width + 1}", "{parent.height - 2}")
+            :setPosition("{parent.width - self.width + 1}", "{parent.height - 1}")
             :setSize(18, 1)
             :onClick(function()
                 if not folders.selected_item then return end
@@ -98,34 +98,23 @@ folders.__call = function(self, screen, log, functions)
             end)
             :setBackground(colors.gray)
 
+    folders.options_button = screen:addButton("ui_folders_options_btn")
+        :setText("Options")
+        :setSize(18, 1)
+        :setPosition("{parent.width - self.width + 1}", "{parent.height - 2}")
+        :setBackground("{self.clicked and colors.gray or colors.lightGray}")
+        :setBackground(colors.gray)
+        :onClick(function()
+            folders.log.info("Options button clicked")
+            if not folders.selected_item then return end
+            if not fs.exists(folders.list:getSelectedItem().item) then return end
+            functions.options(folders.list:getSelectedItem().item)
+        end)
 
-    -- UI options can come later, for now we'll just have to get them to use the command line.
-    -- folders.options = {}
+    folders.refresh_dropdown(folders.dropdown, false, function (item) folders:populate(item) end)
+end
 
-    -- folders.options.button = screen:addButton("ui_folders_options_btn")
-    --     :setText("Options")
-    --     :setSize(9, 3)
-    --     :setPosition("{parent.width - self.width + 1}", "{parent.height - 2}")
-    --     :setBackground("{self.clicked and colors.gray or colors.lightGray}")
-    --     :onClick(function()
-    --         folders.log.info("Options button clicked")
-    --     end)
-
-    -- folders.options.ui = screen:addLabel("ui_folder_options_ui")
-    --     :setText("")
-    --     :setAutoSize(false)
-    --     :setSize("{parent.width / 2}", "{parent.height / 2}")
-    --     :setPosition("{(parent.width / 2) - (self.width / 2)}", 1)
-    --     :setBackgroundEnabled(true)
-    --     :setBackground(colors.lightBlue)
-    --     :setZ(100)
-
-    -- folders.options.title = screen:addLabel("ui_folder_options_title")
-    --     :setText("Test Options")
-    --     :setPosition("{ui_folder_options_ui.x + ui_folder_options_ui.width / 2 - self.width / 2}", 1)
-    --     -- :setSize(7, 1)
-    --     :setBackground(colors.black)
-
+function folders.refresh_ui()
     folders.refresh_dropdown(folders.dropdown, false, function (item) folders:populate(item) end)
 end
 
@@ -272,6 +261,7 @@ end
 
 function folders:updateButtons()
     folders.queue:setBackground("{self.clicked and colors.gray or colors.lightGray}")
+    folders.options_button:setBackground("{self.clicked and colors.gray or colors.lightGray}")
     folders.selected_item = true
 end
 
@@ -308,6 +298,7 @@ function folders:populate(folder)
 
     folders.list:clear()
     folders.queue:setBackground(colors.gray)
+    folders.options_button:setBackground(colors.gray)
     folders.selected_item = false
 
     folders.log.info("Populating folder: '" .. folder .. "' files: " .. #files)
